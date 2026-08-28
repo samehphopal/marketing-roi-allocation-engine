@@ -1,4 +1,4 @@
-# Enterprise Marketing Mix & Budget Optimization Engine
+# Marketing ROI & Budget Allocation Engine
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sameh-marketing-allocator.streamlit.app)
 ![Python Version](https://img.shields.io/badge/Python-3.12-blue.svg)

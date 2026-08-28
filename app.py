@@ -262,7 +262,7 @@ optimal_blended_roas = optimal_daily_rev / total_daily_spend if total_daily_spen
 # ---------------------------------------------------------
 st.markdown("""
 <div class="header-box">
-    <h1 class="header-title">Enterprise Marketing Mix & Budget Optimization Engine</h1>
+    <h1 class="header-title">Marketing ROI & Budget Allocation Engine</h1>
     <div class="header-subtitle">
         Non-Linear Saturation Response Curves (Hill/Logarithmic) &bull; Bounded SLSQP Convex Optimization &bull; Real-Time Arbitrage Engine
     </div>
