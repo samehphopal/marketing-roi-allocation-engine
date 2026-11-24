@@ -6,65 +6,41 @@
 
 **[🚀 Launch Live Interactive App](https://sameh-marketing-allocator.streamlit.app)**
 
-An interactive Marketing Mix Modeling (MMM) and budget-allocation platform built with Python, SciPy, Plotly, and Streamlit. The engine models non-linear diminishing returns across paid acquisition channels and solves a constrained convex optimization problem (SLSQP) to maximize revenue and gross profit without increasing total ad spend.
+An interactive Marketing Mix Modeling (MMM) and ad-budget simulator built to help growth and marketing teams answer one question: **how do we drive more sales and profit without increasing total ad spend?**
 
 ---
 
-## 1. Business Problem & Product Solution
+## Why I Built This
 
-Performance marketing teams routinely allocate budgets based on **average ROAS**, overlooking **diminishing marginal returns**:
+Most marketing teams allocate budgets using **average ROAS**—which quietly wastes money. A channel like Google Search can look great on average even after it hits audience saturation, meaning the *next* dollar spent there earns far less than a dollar shifted into an underfunded channel like YouTube or TikTok.
 
-- **The Problem:** High-intent channels like Google Search saturate as daily spend climbs—so average ROAS looks healthy even while the *next* dollar deployed delivers lower incremental return than underfunded channels like YouTube or TikTok.
-- **The Solution:** This self-serve simulator calculates exact **marginal ROAS (mROAS)** for every channel, benchmarks it against true **gross-margin contribution breakeven**, and automatically computes the budget-neutral spend split that equalizes marginal efficiency across the portfolio.
-- **Stakeholder Usability:** Includes one-click executive scenario presets, a product gross-margin slider, live custom CSV curve-fitting (`scipy.optimize.curve_fit`), and one-click CSV budget plan export.
-
----
-
-## 2. Mathematical Formulation
-
-### Diminishing Returns Response Curve
-Channel revenue is modeled using a concave logarithmic saturation curve:
-
-$$R_i(x_i) = \alpha_i \cdot \ln(1 + \beta_i \cdot x_i)$$
-
-Where $x_i$ is daily spend in channel $i$, $\alpha_i$ is the saturation scale parameter, and $\beta_i$ is the channel responsiveness coefficient.
-
-### Marginal ROAS (mROAS) & Margin Breakeven
-The instantaneous return on the next $1 spent is the first derivative with respect to spend:
-
-$$\text{mROAS}_i(x_i) = \frac{d R_i(x_i)}{d x_i} = \frac{\alpha_i \cdot \beta_i}{1 + \beta_i \cdot x_i}$$
-
-Given a product gross margin $m \in (0, 1]$, incremental spend remains contribution-positive only while $\text{mROAS}_i(x_i) \ge \frac{1}{m}$.
-
-### Constrained Convex Optimization (SLSQP)
-The optimizer maximizes total portfolio revenue subject to strict budget conservation and realistic channel bounds:
-
-$$\max_{\{x_i\}} \sum_{i=1}^{n} R_i(x_i) \quad \text{subject to} \quad \sum_{i=1}^{n} x_i = B_{\text{total}}, \quad x_{i,\min} \le x_i \le x_{i,\max}$$
-
-At optimality, marginal returns across all unbounded channels equalize to a single portfolio equilibrium:
-
-$$\text{mROAS}_1(x_1^*) = \text{mROAS}_2(x_2^*) = \dots = \text{mROAS}_n(x_n^*)$$
+This tool turns diminishing-returns math into a clean, self-serve dashboard any marketer or executive can use in 30 seconds:
+- **See the next-dollar return (mROAS)** for every channel in real time.
+- **Reallocate budget automatically** to maximize revenue and gross profit at zero extra spend.
+- **Test your own numbers** with one-click presets, a gross-margin profit slider, or your own uploaded CSV.
 
 ---
 
-## 3. Core Features
+## Core Features
 
-- **4-Channel Benchmark Mix & Presets:** Out-of-the-box simulation across Google Search, Meta Ads, YouTube Ads, and TikTok Ads with one-click scenario presets (*Balanced Growth Mix*, *Search-Heavy Saturation*, *Aggressive Launch Push*).
-- **Live Custom CSV Curve-Fitting:** Upload any historical `channel, spend, revenue` CSV (or download the built-in sample CSV) to fit custom non-linear response curves on the fly using `scipy.optimize.curve_fit`.
-- **Unit Economics & Profit Lift:** Interactive gross-margin control calculates true contribution breakeven mROAS and annualized gross profit lift.
-- **Visual Saturation Diagnostics:** Interactive Plotly curves comparing current spend (circles) vs. optimal targets (diamonds) against both the optimal equilibrium and margin breakeven thresholds.
-- **Executive Audit & CSV Export:** Full channel-by-channel reallocation matrix with one-click CSV export and a plain-English metrics glossary.
-
----
-
-## 4. Tech Stack
-
-- **Optimization & Modeling:** Python, `scipy.optimize` (`minimize` SLSQP & `curve_fit`), NumPy, Pandas
-- **Visualization & UI:** Plotly, Streamlit, Custom CSS, Streamlit Community Cloud
+- **4-Channel Mix & One-Click Presets:** Models Google Search, Meta Ads, YouTube Ads, and TikTok Ads with instant scenarios (*Balanced Growth Mix*, *Search-Heavy Saturation*, *Aggressive Launch Push*).
+- **Live Custom CSV Curve-Fitting:** Upload any `channel, spend, revenue` CSV (or download the built-in sample CSV) to fit custom diminishing-returns curves on the fly via `scipy.optimize.curve_fit`.
+- **True Profit Breakeven:** Adjustable Product Gross Margin slider calculates the real contribution breakeven line ($1 / \text{Margin}$) and estimated annual gross profit lift.
+- **Visual Diagnostics:** Interactive Plotly charts comparing current spend (circles) vs. optimal targets (diamonds) against the portfolio sweet spot and profit breakeven line.
+- **Plain-English UX & CSV Export:** Built-in plain-English metrics guide for non-technical stakeholders plus one-click CSV budget plan export.
 
 ---
 
-## 5. Run Locally
+## Under the Hood (Math & Tech Stack)
+
+- **Diminishing Returns Curve:** $R_i(x_i) = \alpha_i \cdot \ln(1 + \beta_i \cdot x_i)$
+- **Next-Dollar Return (mROAS):** $\frac{dR_i}{dx_i} = \frac{\alpha_i \cdot \beta_i}{1 + \beta_i \cdot x_i}$
+- **Optimization:** Constrained convex optimization via `scipy.optimize.minimize` (SLSQP), shifting spend across channels until marginal returns equalize while keeping total budget fixed.
+- **Stack:** Python, SciPy, NumPy, Pandas, Plotly, Streamlit, Streamlit Community Cloud.
+
+---
+
+## Run Locally
 
 ```bash
 git clone [https://github.com/samehphopal/marketing-roi-allocation-engine.git](https://github.com/samehphopal/marketing-roi-allocation-engine.git)
