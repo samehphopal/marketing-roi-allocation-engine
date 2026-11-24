@@ -30,7 +30,7 @@ st.markdown("""
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .header-box {
-        padding: 1.2rem 0 0.9rem 0;
+        padding: 1.1rem 0 0.9rem 0;
         border-bottom: 1px solid #1e293b;
         margin-bottom: 1.4rem;
     }
@@ -63,10 +63,11 @@ st.markdown("""
         margin-bottom: 0.4rem;
     }
     .metric-value {
-        font-size: 1.75rem;
+        font-size: 1.72rem;
         font-weight: 700;
         color: #f8fafc;
         line-height: 1.15;
+        white-space: nowrap;
     }
     .metric-sub {
         font-size: 0.8rem;
@@ -87,7 +88,7 @@ st.markdown("""
     .rec-heading {
         color: #38bdf8;
         font-weight: 700;
-        font-size: 0.85rem;
+        font-size: 0.84rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -104,6 +105,16 @@ st.markdown("""
     .rec-highlight {
         color: #34d399;
         font-weight: 700;
+    }
+    .glossary-card {
+        background: #131b2e;
+        border: 1px solid #1e293b;
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-top: 16px;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        color: #cbd5e1;
     }
     .stTabs [data-baseweb="tab-list"] {
         gap: 1.5rem;
@@ -123,7 +134,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# Saturation Curves, Real CSV Calibration & SLSQP Engine
+# Formatting Helpers
+# ---------------------------------------------------------
+def fmt_signed_usd(val: float, decimals: int = 0) -> str:
+    sign = "+" if val >= 0 else "-"
+    return f"{sign}${abs(val):,.{decimals}f}"
+
+def fmt_compact_usd(val: float) -> str:
+    if abs(val) >= 1_000_000:
+        return f"${val / 1_000_000:.2f}M"
+    if abs(val) >= 1_000:
+        return f"${val / 1_000:.0f}K"
+    return f"${val:,.0f}"
+
+# ---------------------------------------------------------
+# Saturation Curves, Live CSV Calibration & SLSQP Engine
 # ---------------------------------------------------------
 DEFAULT_CHANNELS = {
     "Google Search": {"alpha": 9200.0, "beta": 0.0009, "default_spend": 4200.0},
@@ -133,9 +158,9 @@ DEFAULT_CHANNELS = {
 }
 
 SCENARIO_PRESETS = {
-    "Balanced E-Commerce ($9.4k/day)": {"Google Search": 4200.0, "Meta Ads": 2800.0, "YouTube Ads": 1400.0, "TikTok Ads": 1000.0},
-    "Over-Indexed on Search ($10k/day)": {"Google Search": 6000.0, "Meta Ads": 2200.0, "YouTube Ads": 1000.0, "TikTok Ads": 800.0},
-    "Product Launch Push ($12k/day)": {"Google Search": 3500.0, "Meta Ads": 4500.0, "YouTube Ads": 2500.0, "TikTok Ads": 1500.0},
+    "Balanced Growth Mix": {"Google Search": 4200.0, "Meta Ads": 2800.0, "YouTube Ads": 1400.0, "TikTok Ads": 1000.0},
+    "Search-Heavy (Oversaturated)": {"Google Search": 6000.0, "Meta Ads": 2200.0, "YouTube Ads": 1000.0, "TikTok Ads": 800.0},
+    "Aggressive Launch Push": {"Google Search": 3500.0, "Meta Ads": 4500.0, "YouTube Ads": 2500.0, "TikTok Ads": 1500.0},
 }
 
 def channel_revenue(spend, alpha, beta):
@@ -194,7 +219,7 @@ def calibrate_from_csv(df: pd.DataFrame) -> dict:
             "default_spend": round(float(np.mean(x)), 2)
         }
     if len(fitted) < 2:
-        raise ValueError("Need at least 2 channels with 3+ data rows each to run portfolio optimization.")
+        raise ValueError("Need at least 2 channels with 3+ rows each to run optimization.")
     return fitted
 
 def run_slsqp_optimization(total_budget, channels_dict):
@@ -219,20 +244,20 @@ def run_slsqp_optimization(total_budget, channels_dict):
     return np.array([channels_dict[ch]["current_spend"] for ch in channel_names])
 
 # ---------------------------------------------------------
-# Sidebar Controls & Ingestion
+# Sidebar Controls
 # ---------------------------------------------------------
 with st.sidebar:
     st.markdown("### 📂 Data Source")
-    ingestion_mode = st.radio(
-        "Calibration Mode",
-        ["Benchmark Telemetry", "Upload Custom CSV"],
+    data_mode = st.radio(
+        "Model Input",
+        ["Industry Benchmark Data", "Upload Custom CSV"],
         index=0
     )
 
     active_channels = {k: dict(v) for k, v in DEFAULT_CHANNELS.items()}
-    preset_choice = "Balanced E-Commerce ($9.4k/day)"
+    preset_choice = "Balanced Growth Mix"
 
-    if ingestion_mode == "Upload Custom CSV":
+    if data_mode == "Upload Custom CSV":
         st.download_button(
             label="⬇️ Download Sample CSV",
             data=generate_sample_csv(),
@@ -249,9 +274,9 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"CSV Error: {e}")
         else:
-            st.caption("Upload a CSV with columns `channel, spend, revenue` to fit custom response curves.")
+            st.caption("Upload a CSV with columns `channel, spend, revenue` to calibrate custom curves.")
     else:
-        preset_choice = st.selectbox("Budget Scenario Preset", list(SCENARIO_PRESETS.keys()), index=0)
+        preset_choice = st.selectbox("Scenario Preset", list(SCENARIO_PRESETS.keys()), index=0)
         for ch, preset_val in SCENARIO_PRESETS[preset_choice].items():
             if ch in active_channels:
                 active_channels[ch]["default_spend"] = preset_val
@@ -268,15 +293,29 @@ with st.sidebar:
             value=float(params["default_spend"]),
             step=100.0,
             format="%.2f",
-            key=f"spend_{ingestion_mode}_{preset_choice}_{ch_name}"
+            key=f"spend_{data_mode}_{preset_choice}_{ch_name}"
         )
         current_spends[ch_name] = val
         active_channels[ch_name]["current_spend"] = val
 
+    st.markdown("---")
+    st.markdown("### 💼 Unit Economics")
+    gross_margin_pct = st.slider(
+        "Product Gross Margin (%)",
+        min_value=20,
+        max_value=90,
+        value=60,
+        step=5,
+        help="Used to calculate true contribution breakeven mROAS (1 / Gross Margin) and estimated gross profit lift."
+    )
+    gross_margin = gross_margin_pct / 100.0
+    breakeven_mroas = 1.0 / gross_margin
+
     total_daily_spend = sum(current_spends.values())
     st.markdown("---")
     st.metric("Total Daily Budget", f"${total_daily_spend:,.2f}")
-    st.caption(f"Annualized Ad Spend: **${total_daily_spend * 365:,.0f}**")
+    st.caption(f"Monthly: **{fmt_compact_usd(total_daily_spend * 30)}** &bull; Annual: **{fmt_compact_usd(total_daily_spend * 365)}**")
+    st.caption(f"Contribution Breakeven mROAS: **${breakeven_mroas:.2f}**")
 
 # ---------------------------------------------------------
 # Optimization Execution
@@ -290,9 +329,16 @@ optimal_daily_rev = total_portfolio_revenue(optimal_spend_arr, active_channels)
 
 daily_lift = max(0.0, optimal_daily_rev - current_daily_rev)
 annual_lift = daily_lift * 365.0
+annual_profit_lift = annual_lift * gross_margin
 pct_lift = ((optimal_daily_rev / current_daily_rev) - 1.0) * 100 if current_daily_rev > 0 else 0.0
 current_blended_roas = current_daily_rev / total_daily_spend if total_daily_spend > 0 else 0.0
 optimal_blended_roas = optimal_daily_rev / total_daily_spend if total_daily_spend > 0 else 0.0
+
+optimal_mroas_list = [
+    marginal_roas(optimal_spend_arr[i], active_channels[ch]["alpha"], active_channels[ch]["beta"])
+    for i, ch in enumerate(channel_names)
+]
+equilibrium_mroas = float(np.median(optimal_mroas_list))
 
 # ---------------------------------------------------------
 # Main Dashboard UI
@@ -301,7 +347,7 @@ st.markdown("""
 <div class="header-box">
     <h1 class="header-title">Marketing ROI & Budget Allocation Engine</h1>
     <div class="header-subtitle">
-        Marketing Mix Modeling (MMM) &bull; Diminishing Marginal Returns Optimization &bull; Real-Time Budget Reallocation
+        Interactive Marketing Mix Modeling (MMM) simulator optimizing cross-channel ad spend for diminishing marginal returns.
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -311,9 +357,9 @@ kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
 with kpi_col1:
     st.markdown(f"""
     <div class="metric-card">
-        <div class="metric-label">Active Daily Spend</div>
+        <div class="metric-label">Active Daily Budget</div>
         <div class="metric-value">${total_daily_spend:,.0f}</div>
-        <div class="metric-sub">Annualized: ${total_daily_spend * 365:,.0f}</div>
+        <div class="metric-sub">Mo: {fmt_compact_usd(total_daily_spend * 30)} &bull; Yr: {fmt_compact_usd(total_daily_spend * 365)}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -331,7 +377,7 @@ with kpi_col3:
     <div class="metric-card">
         <div class="metric-label">Optimized Forecasted Rev</div>
         <div class="metric-value">${optimal_daily_rev:,.0f}</div>
-        <div class="metric-sub"><span class="metric-lift">+${daily_lift:,.0f}/day</span> ({pct_lift:+.1f}%)</div>
+        <div class="metric-sub"><span class="metric-lift">+${daily_lift:,.0f}/day</span> ({pct_lift:+.1f}% &bull; {optimal_blended_roas:.2f}x ROAS)</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -340,17 +386,18 @@ with kpi_col4:
     <div class="metric-card">
         <div class="metric-label">Annual Revenue Lift</div>
         <div class="metric-value">+${annual_lift:,.0f}</div>
-        <div class="metric-sub"><span class="metric-lift">+{optimal_blended_roas - current_blended_roas:.2f}x</span> Blended ROAS Gain</div>
+        <div class="metric-sub"><span class="metric-lift">+${annual_profit_lift:,.0f}/yr</span> Est. Gross Profit ({gross_margin_pct}% Margin)</div>
     </div>
     """, unsafe_allow_html=True)
 
 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
 with st.expander("📖 How the Optimizer Works (Plain English)"):
-    st.markdown("""
-- **Why Average ROAS Misleads Teams:** A channel can look strong on average while its *next* dollar spent is already hitting audience saturation.
-- **Marginal ROAS (mROAS):** Measures the exact revenue return generated by the **next $1** spent in each channel.
-- **Budget-Neutral Optimization (SLSQP):** Without increasing total ad spend, the solver shifts dollars out of lower-mROAS channels into higher-mROAS channels until marginal returns equalize across the portfolio—maximizing total revenue.
+    st.markdown(f"""
+- **Why Average ROAS Misleads Growth Teams:** A channel can show a healthy 4x average ROAS while its *next* incremental dollar is already saturating and returning far less than an underfunded channel.
+- **Marginal ROAS (mROAS):** Measures the exact revenue return of the **next $1** deployed in each channel.
+- **Budget-Neutral Optimization (SLSQP):** Without adding a single dollar to total ad spend, the solver shifts capital out of lower-mROAS channels into higher-mROAS channels until marginal returns equalize across the portfolio (currently **${equilibrium_mroas:.2f}** per next $1).
+- **Contribution Breakeven:** At your **{gross_margin_pct}% gross margin**, every incremental $1 of ad spend needs at least **${breakeven_mroas:.2f}** in marginal revenue to generate positive profit.
     """)
 
 # ---------------------------------------------------------
@@ -401,8 +448,8 @@ with tab_opt:
         ))
         fig_realloc.update_layout(
             barmode="group",
-            plot_bgcolor="#0b0f17",
-            paper_bgcolor="#0b0f17",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#94a3b8", size=12),
             margin=dict(l=20, r=20, t=35, b=20),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(color="#cbd5e1")),
@@ -435,29 +482,38 @@ with tab_opt:
             marginal_data.append({
                 "Channel": ch,
                 "Next $1 Return": f"${m_roas:.2f}",
-                "Suggested Shift": f"{delta_s:+,.0f}",
+                "Suggested Shift": fmt_signed_usd(delta_s, 0),
                 "Action": status
             })
 
         st.dataframe(pd.DataFrame(marginal_data), use_container_width=True, hide_index=True)
 
         reallocated_capital = float(np.sum(np.maximum(0.0, current_spend_arr - optimal_spend_arr)))
-        top_cut = channel_names[int(np.argmin(optimal_spend_arr - current_spend_arr))]
-        top_scale = channel_names[int(np.argmax(optimal_spend_arr - current_spend_arr))]
+        if reallocated_capital < 50.0 or annual_lift < 1000.0:
+            rec_html = (
+                "Your current budget split is already <b>near the mathematical optimum</b>. "
+                f"Marginal returns across all channels are tightly balanced around <span class='rec-highlight'>${equilibrium_mroas:.2f}</span> per incremental dollar."
+            )
+        else:
+            top_cut = channel_names[int(np.argmin(optimal_spend_arr - current_spend_arr))]
+            top_scale = channel_names[int(np.argmax(optimal_spend_arr - current_spend_arr))]
+            rec_html = (
+                f"Reallocating <span class='rec-highlight'>${reallocated_capital:,.0f}/day</span>—primarily shifting spend from "
+                f"<b>{top_cut}</b> into <b>{top_scale}</b>—unlocks <span class='rec-highlight'>+${annual_lift:,.0f}</span> in annualized revenue "
+                f"(<b>+${annual_profit_lift:,.0f}</b> est. gross profit) at <b>zero additional ad spend</b>."
+            )
 
         st.markdown(f"""
         <div class="recommendation-card">
             <div class="rec-heading"><span>⚡</span> Executive Takeaway</div>
-            <p class="rec-body">
-                Reallocating <span class="rec-highlight">${reallocated_capital:,.0f}/day</span>—primarily shifting spend from <b>{top_cut}</b> into <b>{top_scale}</b>—unlocks <span class="rec-highlight">+${annual_lift:,.0f}</span> in annualized revenue lift at <b>zero additional ad budget</b>.
-            </p>
+            <p class="rec-body">{rec_html}</p>
         </div>
         """, unsafe_allow_html=True)
 
 # --- TAB 2 ---
 with tab_curves:
     st.subheader("Channel Response Dynamics (Diminishing Marginal Returns)")
-    st.caption("Dots mark your active daily spend. Steeper curves indicate more room to scale efficiently.")
+    st.caption("Circles mark your current daily spend; diamonds show the mathematically optimal target spend.")
 
     spend_range = np.linspace(100, max(total_daily_spend * 0.85, 8000), 250)
     colors = ["#38bdf8", "#818cf8", "#f43f5e", "#f59e0b", "#10b981", "#a855f7"]
@@ -475,26 +531,35 @@ with tab_curves:
                 line=dict(color=color, width=2.5),
                 hovertemplate=f"<b>{ch}</b><br>Spend: $%{{x:,.0f}}<br>Daily Rev: $%{{y:,.0f}}<extra></extra>"
             ))
-            cur_s = current_spends[ch]
+            cur_s = current_spend_arr[idx]
+            opt_s = optimal_spend_arr[idx]
             fig_sat.add_trace(go.Scatter(
                 x=[cur_s],
                 y=[channel_revenue(cur_s, p["alpha"], p["beta"])],
                 mode="markers",
-                marker=dict(size=9, color=color, line=dict(width=1.5, color="#ffffff")),
+                marker=dict(size=8, color=color, symbol="circle", line=dict(width=1.5, color="#ffffff")),
                 showlegend=False,
-                hoverinfo="skip"
+                hovertemplate=f"<b>{ch} (Current)</b><br>Spend: $%{{x:,.0f}}<br>Rev: $%{{y:,.0f}}<extra></extra>"
+            ))
+            fig_sat.add_trace(go.Scatter(
+                x=[opt_s],
+                y=[channel_revenue(opt_s, p["alpha"], p["beta"])],
+                mode="markers",
+                marker=dict(size=10, color=color, symbol="diamond", line=dict(width=1.5, color="#10b981")),
+                showlegend=False,
+                hovertemplate=f"<b>{ch} (Optimal Target)</b><br>Spend: $%{{x:,.0f}}<br>Rev: $%{{y:,.0f}}<extra></extra>"
             ))
 
         fig_sat.update_layout(
             title="Total Daily Revenue vs. Spend",
-            plot_bgcolor="#0b0f17",
-            paper_bgcolor="#0b0f17",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#94a3b8", size=12),
             xaxis=dict(gridcolor="#1e293b", title="Daily Channel Spend ($)"),
             yaxis=dict(gridcolor="#1e293b", title="Forecasted Daily Revenue ($)"),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
             margin=dict(l=20, r=20, t=55, b=20),
-            height=380
+            height=390
         )
         st.plotly_chart(fig_sat, use_container_width=True, config=CHART_CONFIG)
 
@@ -510,34 +575,51 @@ with tab_curves:
                 line=dict(color=color, width=2.5),
                 hovertemplate=f"<b>{ch}</b><br>Spend: $%{{x:,.0f}}<br>Next $1 Return: $%{{y:.2f}}<extra></extra>"
             ))
-            cur_s = current_spends[ch]
+            cur_s = current_spend_arr[idx]
+            opt_s = optimal_spend_arr[idx]
             fig_mroas.add_trace(go.Scatter(
                 x=[cur_s],
                 y=[marginal_roas(cur_s, p["alpha"], p["beta"])],
                 mode="markers",
-                marker=dict(size=9, color=color, line=dict(width=1.5, color="#ffffff")),
+                marker=dict(size=8, color=color, symbol="circle", line=dict(width=1.5, color="#ffffff")),
                 showlegend=False,
-                hoverinfo="skip"
+                hovertemplate=f"<b>{ch} (Current)</b><br>Spend: $%{{x:,.0f}}<br>mROAS: $%{{y:.2f}}<extra></extra>"
+            ))
+            fig_mroas.add_trace(go.Scatter(
+                x=[opt_s],
+                y=[marginal_roas(opt_s, p["alpha"], p["beta"])],
+                mode="markers",
+                marker=dict(size=10, color=color, symbol="diamond", line=dict(width=1.5, color="#10b981")),
+                showlegend=False,
+                hovertemplate=f"<b>{ch} (Optimal Target)</b><br>Spend: $%{{x:,.0f}}<br>mROAS: $%{{y:.2f}}<extra></extra>"
             ))
 
         fig_mroas.add_hline(
-            y=1.0,
+            y=equilibrium_mroas,
+            line_dash="dot",
+            line_color="#10b981",
+            annotation_text=f"Optimal Equilibrium (${equilibrium_mroas:.2f})",
+            annotation_position="top right",
+            annotation_font=dict(color="#34d399", size=10)
+        )
+        fig_mroas.add_hline(
+            y=breakeven_mroas,
             line_dash="dash",
-            line_color="#e2e8f0",
-            annotation_text="Breakeven ($1.00 mROAS)",
+            line_color="#f87171",
+            annotation_text=f"Margin Breakeven (${breakeven_mroas:.2f} @ {gross_margin_pct}% GM)",
             annotation_position="bottom right",
-            annotation_font=dict(color="#94a3b8", size=10)
+            annotation_font=dict(color="#fca5a5", size=10)
         )
         fig_mroas.update_layout(
             title="Marginal ROAS (Return on Next $1)",
-            plot_bgcolor="#0b0f17",
-            paper_bgcolor="#0b0f17",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#94a3b8", size=12),
             xaxis=dict(gridcolor="#1e293b", title="Daily Channel Spend ($)"),
             yaxis=dict(gridcolor="#1e293b", title="Marginal Return ($)"),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
             margin=dict(l=20, r=20, t=55, b=20),
-            height=380
+            height=390
         )
         st.plotly_chart(fig_mroas, use_container_width=True, config=CHART_CONFIG)
 
@@ -553,14 +635,14 @@ with tab_audit:
         "Current Revenue ($)": [channel_revenue(current_spends[ch], active_channels[ch]["alpha"], active_channels[ch]["beta"]) for ch in channel_names],
         "Optimized Revenue ($)": [channel_revenue(optimal_spend_arr[i], active_channels[ch]["alpha"], active_channels[ch]["beta"]) for i, ch in enumerate(channel_names)],
         "Current mROAS": [marginal_roas(current_spends[ch], active_channels[ch]["alpha"], active_channels[ch]["beta"]) for ch in channel_names],
-        "Optimal mROAS": [marginal_roas(optimal_spend_arr[i], active_channels[ch]["alpha"], active_channels[ch]["beta"]) for i, ch in enumerate(channel_names)]
+        "Optimal mROAS": optimal_mroas_list
     })
 
     st.dataframe(
         audit_table.style.format({
             "Current Spend ($)": "${:,.2f}",
             "Optimal Spend ($)": "${:,.2f}",
-            "Recommended Shift ($)": "${:+,.2f}",
+            "Recommended Shift ($)": lambda v: fmt_signed_usd(v, 2),
             "Current Revenue ($)": "${:,.2f}",
             "Optimized Revenue ($)": "${:,.2f}",
             "Current mROAS": "${:.2f}",
@@ -579,3 +661,12 @@ with tab_audit:
         mime="text/csv",
         use_container_width=True
     )
+
+    st.markdown(f"""
+    <div class="glossary-card">
+        <div style="color: #38bdf8; font-weight: 800; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;">📚 How to Read These Metrics</div>
+        <div><strong>• Blended ROAS vs. Marginal ROAS (mROAS):</strong> Blended ROAS is total revenue divided by total spend across the whole portfolio. <strong>mROAS</strong> isolates the slope at your current budget—how much revenue the <em>very next $1</em> generates.</div>
+        <div style="margin-top: 6px;"><strong>• Optimal Equilibrium (${equilibrium_mroas:.2f}):</strong> Under constrained convex optimization (Kuhn-Tucker conditions), total revenue peaks when every active channel's marginal return equalizes—meaning no dollar can earn more by moving elsewhere.</div>
+        <div style="margin-top: 6px;"><strong>• Margin Breakeven (${breakeven_mroas:.2f} at {gross_margin_pct}% Gross Margin):</strong> Spending past the point where mROAS drops below <code>1 / Gross Margin</code> generates unprofitable top-line revenue.</div>
+    </div>
+    """, unsafe_allow_html=True)
