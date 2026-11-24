@@ -392,7 +392,7 @@ with kpi_col4:
 
 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-with st.expander("📖 How This Works (Plain English)"):
+with st.expander("📖 How This Tool Works"):
     st.markdown(f"""
 - **Every Ad Channel Hits a Ceiling:** Spending more on Google or Meta eventually reaches fewer new buyers, so each extra dollar brings back less than the one before it.
 - **Follow the Next Dollar:** Instead of looking at past averages, this tool checks what your **next $1** will earn in each channel and moves budget out of crowded channels into ones with more room to grow.
