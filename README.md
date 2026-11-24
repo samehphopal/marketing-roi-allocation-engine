@@ -6,7 +6,7 @@
 
 **[🚀 Launch Live Interactive App](https://sameh-marketing-allocator.streamlit.app)**
 
-An interactive Marketing Mix Modeling (MMM) and ad-budget simulator built to help growth and marketing teams answer one question: **how do we drive more sales and profit without increasing total ad spend?**
+An interactive Marketing Mix Modeling (MMM) and ad-budget simulator built to help growth and marketing teams answer one question: **how do we drive more sales and profit without increasing _total_ ad spend?**
 
 ## Why I Built This
 
