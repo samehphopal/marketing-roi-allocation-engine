@@ -8,16 +8,14 @@
 
 An interactive Marketing Mix Modeling (MMM) and ad-budget simulator built to help growth and marketing teams answer one question: **how do we drive more sales and profit without increasing total ad spend?**
 
----
-
 ## Why I Built This
 
-Most marketing teams allocate budgets using **average ROAS**—which quietly wastes money. A channel like Google Search can look great on average even after it hits audience saturation, meaning the *next* dollar spent there earns far less than a dollar shifted into an underfunded channel like YouTube or TikTok.
+Most marketing teams allocate budgets using **average ROAS**, which quietly wastes money. A channel like Google Search can look great on average even after it hits audience saturation, meaning the *next* dollar spent there earns far less than a dollar shifted into an underfunded channel like YouTube or TikTok.
 
 This tool turns diminishing-returns math into a clean, self-serve dashboard any marketer or executive can use in 30 seconds:
 - **See the next-dollar return (mROAS)** for every channel in real time.
 - **Reallocate budget automatically** to maximize revenue and gross profit at zero extra spend.
-- **Test your own numbers** with one-click presets, a gross-margin profit slider, or your own uploaded CSV.
+- **Test your own numbers** with one-click presets, a gross-margin profit slider, or a custom CSV upload.
 
 ---
 
