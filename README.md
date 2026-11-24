@@ -83,7 +83,7 @@ To run this repository locally:
 
 ```bash
 # 1. Clone repository
-git clone [https://github.com/samehphopal/marketing-roi-allocation-engine.git](https://github.com/samehphopal/marketing-roi-allocation-engine.git)
+git clone https://github.com/samehphopal/marketing-roi-allocation-engine.git
 
 # 2. Navigate into project folder
 cd marketing-roi-allocation-engine
