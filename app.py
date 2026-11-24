@@ -306,7 +306,7 @@ with st.sidebar:
         max_value=90,
         value=60,
         step=5,
-        help="Sets your true profit breakeven line (1 / Gross Margin) and estimates annual gross profit lift."
+        help="The share of each sale you keep after paying to make or ship the product. For example, at 60% margin you keep $0.60 per $1 sold, so you need $1.67 in sales to pay back every $1 spent on ads."
     )
     gross_margin = gross_margin_pct / 100.0
     breakeven_mroas = 1.0 / gross_margin
@@ -347,7 +347,7 @@ st.markdown("""
 <div class="header-box">
     <h1 class="header-title">Marketing ROI & Budget Allocation Engine</h1>
     <div class="header-subtitle">
-        See where your ad dollars are working hardest—and shift budget to drive more sales without spending a dime extra.
+        See where your ad dollars are working hardest, and shift budget to drive more sales without spending extra.
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -396,7 +396,7 @@ with st.expander("📖 How This Tool Works"):
     st.markdown(f"""
 - **Every Ad Channel Hits a Ceiling:** Spending more on Google or Meta eventually reaches fewer new buyers, so each extra dollar brings back less than the one before it.
 - **Follow the Next Dollar:** Instead of looking at past averages, this tool checks what your **next $1** will earn in each channel and moves budget out of crowded channels into ones with more room to grow.
-- **Same Budget, More Profit:** Without adding a dollar to your total spend, the optimizer balances every channel to the same sweet spot (**${equilibrium_mroas:.2f}** per next $1)—keeping you well above your **${breakeven_mroas:.2f}** profit breakeven line at a {gross_margin_pct}% margin.
+- **Same Budget, More Profit:** Without adding a dollar to your total spend, the optimizer balances every channel to the same sweet spot (**${equilibrium_mroas:.2f}** per next $1), compared to your **${breakeven_mroas:.2f}** profit breakeven line at a {gross_margin_pct}% margin.
     """)
 
 # ---------------------------------------------------------
@@ -450,13 +450,13 @@ with tab_opt:
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#94a3b8", size=12),
-            margin=dict(l=20, r=20, t=35, b=20),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(color="#cbd5e1")),
+            margin=dict(l=20, r=20, t=40, b=20),
+            legend=dict(orientation="h", yanchor="bottom", y=1.03, xanchor="left", x=0, font=dict(color="#cbd5e1")),
             xaxis=dict(gridcolor="#1e293b", showgrid=False),
             yaxis=dict(gridcolor="#1e293b", title="Daily Budget ($)", showgrid=True),
             bargap=0.25,
             bargroupgap=0.08,
-            height=370
+            height=375
         )
         st.plotly_chart(fig_realloc, use_container_width=True, config=CHART_CONFIG)
 
@@ -497,8 +497,8 @@ with tab_opt:
             top_cut = channel_names[int(np.argmin(optimal_spend_arr - current_spend_arr))]
             top_scale = channel_names[int(np.argmax(optimal_spend_arr - current_spend_arr))]
             rec_html = (
-                f"Moving <span class='rec-highlight'>${reallocated_capital:,.0f}/day</span>—mostly from "
-                f"<b>{top_cut}</b> into <b>{top_scale}</b>—unlocks <span class='rec-highlight'>+${annual_lift:,.0f}</span> in extra annual sales "
+                f"Moving <span class='rec-highlight'>${reallocated_capital:,.0f}/day</span> (mostly from "
+                f"<b>{top_cut}</b> into <b>{top_scale}</b>) unlocks <span class='rec-highlight'>+${annual_lift:,.0f}</span> in extra annual sales "
                 f"(<b>+${annual_profit_lift:,.0f}</b> est. gross profit) without increasing your total ad budget."
             )
 
@@ -550,15 +550,15 @@ with tab_curves:
             ))
 
         fig_sat.update_layout(
-            title="Total Daily Sales vs. Ad Spend",
+            title=dict(text="Total Daily Sales vs. Ad Spend", x=0, y=0.97, font=dict(size=15, color="#f8fafc")),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#94a3b8", size=12),
             xaxis=dict(gridcolor="#1e293b", title="Daily Channel Spend ($)"),
             yaxis=dict(gridcolor="#1e293b", title="Forecasted Daily Sales ($)"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-            margin=dict(l=20, r=20, t=55, b=20),
-            height=390
+            legend=dict(orientation="h", yanchor="bottom", y=1.03, xanchor="left", x=0, font=dict(size=11, color="#cbd5e1")),
+            margin=dict(l=20, r=20, t=80, b=20),
+            height=410
         )
         st.plotly_chart(fig_sat, use_container_width=True, config=CHART_CONFIG)
 
@@ -593,12 +593,18 @@ with tab_curves:
                 hovertemplate=f"<b>{ch} (Target)</b><br>Spend: $%{{x:,.0f}}<br>Next $1: $%{{y:.2f}}<extra></extra>"
             ))
 
+        # Place the higher line's label above and the lower line's label below to prevent overlap
+        eq_pos = "top right" if equilibrium_mroas >= breakeven_mroas else "bottom right"
+        be_pos = "bottom right" if equilibrium_mroas >= breakeven_mroas else "top right"
+
         fig_mroas.add_hline(
             y=equilibrium_mroas,
             line_dash="dot",
             line_color="#10b981",
             annotation_text=f"Sweet Spot (${equilibrium_mroas:.2f})",
-            annotation_position="top right",
+            annotation_position=eq_pos,
+            annotation_bgcolor="rgba(11, 15, 23, 0.88)",
+            annotation_borderpad=3,
             annotation_font=dict(color="#34d399", size=10)
         )
         fig_mroas.add_hline(
@@ -606,19 +612,21 @@ with tab_curves:
             line_dash="dash",
             line_color="#f87171",
             annotation_text=f"Profit Breakeven (${breakeven_mroas:.2f} @ {gross_margin_pct}% Margin)",
-            annotation_position="bottom right",
+            annotation_position=be_pos,
+            annotation_bgcolor="rgba(11, 15, 23, 0.88)",
+            annotation_borderpad=3,
             annotation_font=dict(color="#fca5a5", size=10)
         )
         fig_mroas.update_layout(
-            title="Return on Your Next $1 (Marginal ROAS)",
+            title=dict(text="Return on Your Next $1 (Marginal ROAS)", x=0, y=0.97, font=dict(size=15, color="#f8fafc")),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#94a3b8", size=12),
             xaxis=dict(gridcolor="#1e293b", title="Daily Channel Spend ($)"),
             yaxis=dict(gridcolor="#1e293b", title="Return per Next $1 ($)"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-            margin=dict(l=20, r=20, t=55, b=20),
-            height=390
+            legend=dict(orientation="h", yanchor="bottom", y=1.03, xanchor="left", x=0, font=dict(size=11, color="#cbd5e1")),
+            margin=dict(l=20, r=20, t=80, b=20),
+            height=410
         )
         st.plotly_chart(fig_mroas, use_container_width=True, config=CHART_CONFIG)
 
@@ -663,9 +671,9 @@ with tab_audit:
 
     st.markdown(f"""
     <div class="glossary-card">
-        <div style="color: #38bdf8; font-weight: 800; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;">💡 Plain-English Metrics Guide</div>
-        <div><strong>• Past Return vs. Next-Dollar Return (mROAS):</strong> An ad channel can have great past results and still waste money today if you've already reached everyone likely to buy. <strong>mROAS</strong> simply asks: <em>"If I put $1 more into this channel right now, how much do I get back?"</em></div>
-        <div style="margin-top: 6px;"><strong>• The Sweet Spot (${equilibrium_mroas:.2f} per $1):</strong> You make the most money when every channel gives you the exact same return on its last dollar. If TikTok returns $3 on your next dollar and Google only returns $2, you're leaving money on the table until you shift budget over.</div>
+        <div style="color: #38bdf8; font-weight: 800; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;">💡 Key Metrics Guide</div>
+        <div><strong>• Past Return vs. Next-Dollar Return (mROAS):</strong> An ad channel can have great past results and still waste money today if you have already reached everyone likely to buy. <strong>mROAS</strong> simply asks: <em>"If I put $1 more into this channel right now, how much do I get back?"</em></div>
+        <div style="margin-top: 6px;"><strong>• The Sweet Spot (${equilibrium_mroas:.2f} per $1):</strong> You make the most money when every channel gives you the exact same return on its last dollar. If TikTok returns $3 on your next dollar and Google only returns $2, you are leaving money on the table until you shift budget over.</div>
         <div style="margin-top: 6px;"><strong>• The Profit Line (${breakeven_mroas:.2f} at {gross_margin_pct}% Margin):</strong> Making $1 in sales from $1 in ads actually loses money once you pay for the product itself. At a {gross_margin_pct}% margin, every new ad dollar needs to bring back at least <strong>${breakeven_mroas:.2f}</strong> just to break even.</div>
     </div>
     """, unsafe_allow_html=True)
